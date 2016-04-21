@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  tasks:
+# Ensure a SSH key is present
+# If a key matches this name, will return the ssh key id and changed = False
+# If no existing key matches this name, a new key is created, the ssh key id is returned and changed = False
+  - name: ensure key exists at DO
+    digital_ocean: >
+      state=present
+      command=ssh
+      name=temp-meetup
+      ssh_pub_key='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDSu02xxRkgfEJ8+jwpFYA3f7DHvQqJqFxk/NdkdqBKCXdwMhBH21b36D0G/ePqDiuNxVdF/FQ826T4gkz8tdSAFTr7ROwVYRmyQzD7iOao5yzyyu27KonjYfRxhxYCBBHi0HR3dH9tTk3i5/f9Xrf+TPFUfhMJrYuwmN1aMWNCCevuqBMzV/OWu+Aa7jao+H9QRqtF+KqEZafuc5PeUvWVPvNaE5bGgATi/Vf1XwRkRg0u0FzEkPVZ/6Oj/1nCuJLMrx0bfQC6ogUGamtQ6wc0lUkmnDILN8wiwqYST2mixZ8yQzJfW5sSkrv5aT6XjM6A0TQmjd50GuLRsT20GqhjqUEdwYZjxGDCA/dRqXel0sdD5TDLSWicdToGV7J34cyPmDnQ+VGrwrxV9l4yOSSzkUU9lfwcp11tkPB0WV60fIqrqw0a+glhbvfITBM9NvTe0UvCfNo0GL1fr1qur+7YRsIKFl5wstok8QI1xQ/NAmXOdqnic6opU3YbY5XSThDj+XOjCRVkfYEP/ohB6SKzabx9yYp5StEmyCX4VW2n95PFBFqI+enmuKqWPIFoGxcLWWcT1tJ2Ns2+NMYVltftIxQz9jP0XXGW47RGPrcS2bETHUD7KFuUlBbcBqow0zwJEa3wanP2ezREwutB+3C3wh8tRkcQn4jbdu0tnodghw== bvenkysubbu@yahoo.com'
