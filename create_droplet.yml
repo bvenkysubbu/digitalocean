@@ -1,12 +1,99 @@
 ---
 - hosts: localhost
   tasks:
-# Ensure a SSH key is present
-# If a key matches this name, will return the ssh key id and changed = False
-# If no existing key matches this name, a new key is created, the ssh key id is returned and changed = False
-  - name: ensure key exists at DO
+  - name: ssh key presence on local
+    user: >
+     name=ubuntu
+     generate_ssh_key=yes
+     ssh_key_file=/home/ubuntu/.ssh/id_rsa
+  - name: pub ssh key present on Digital Ocean
     digital_ocean: >
       state=present
       command=ssh
-      name=temp-meetup
-      ssh_pub_key='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDSu02xxRkgfEJ8+jwpFYA3f7DHvQqJqFxk/NdkdqBKCXdwMhBH21b36D0G/ePqDiuNxVdF/FQ826T4gkz8tdSAFTr7ROwVYRmyQzD7iOao5yzyyu27KonjYfRxhxYCBBHi0HR3dH9tTk3i5/f9Xrf+TPFUfhMJrYuwmN1aMWNCCevuqBMzV/OWu+Aa7jao+H9QRqtF+KqEZafuc5PeUvWVPvNaE5bGgATi/Vf1XwRkRg0u0FzEkPVZ/6Oj/1nCuJLMrx0bfQC6ogUGamtQ6wc0lUkmnDILN8wiwqYST2mixZ8yQzJfW5sSkrv5aT6XjM6A0TQmjd50GuLRsT20GqhjqUEdwYZjxGDCA/dRqXel0sdD5TDLSWicdToGV7J34cyPmDnQ+VGrwrxV9l4yOSSzkUU9lfwcp11tkPB0WV60fIqrqw0a+glhbvfITBM9NvTe0UvCfNo0GL1fr1qur+7YRsIKFl5wstok8QI1xQ/NAmXOdqnic6opU3YbY5XSThDj+XOjCRVkfYEP/ohB6SKzabx9yYp5StEmyCX4VW2n95PFBFqI+enmuKqWPIFoGxcLWWcT1tJ2Ns2+NMYVltftIxQz9jP0XXGW47RGPrcS2bETHUD7KFuUlBbcBqow0zwJEa3wanP2ezREwutB+3C3wh8tRkcQn4jbdu0tnodghw== bvenkysubbu@yahoo.com'
+      name=temp_do
+      ssh_pub_key={{ lookup('file', '~/.ssh/id_rsa.pub') }}
+    register: temp_do
+  - name: Create wordpress-droplet/ensure wordpress-droplet exists 
+    digital_ocean: >
+      state=present
+      command=droplet
+      name=wordpress-droplet
+      unique_name=yes
+      size_id=512mb
+      region_id=sgp1
+      image_id=ubuntu-14-04-x64
+      ssh_key_ids={{ temp_do.ssh_key.id }}
+    register: wordpress_droplet
+  - debug: msg="IP is {{ wordpress_droplet.droplet.ip_address }}"
+
+  - name: Add new host to our inventory.
+    add_host:
+       name: "{{ wordpress_droplet.droplet.ip_address }}"
+       groups: wordpress_group
+    when: wordpress_droplet.droplet is defined
+
+- hosts: wordpress_group
+  vars:
+    wp_mysql_db: wordpress
+    wp_mysql_user: wordpress
+    wp_mysql_password: mysecret
+  remote_user: root
+  gather_facts: true
+
+  tasks:
+    - name: Wait for port 22 to become available.
+      local_action: "wait_for port=22 host={{ inventory_hostname }}"
+
+    - name: Update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Install required software
+      apt: name={{ item }} state=present
+      sudo: yes
+      with_items:
+        - apache2
+        - mysql-server
+        - php5-mysql
+        - php5
+        - libapache2-mod-php5
+        - php5-mcrypt
+        - python-mysqldb
+    - name: Install php extensions
+      apt: name={{ item }} state=present
+      with_items:
+        - php5-gd
+        - libssh2-php
+    - name: Create mysql database
+      mysql_db: name={{ wp_mysql_db }} state=present
+
+    - name: Create mysql user
+      mysql_user:
+        name={{ wp_mysql_user }}
+        password={{ wp_mysql_password }}
+        priv=*.*:ALL
+    - name: Download WordPress
+      get_url: url=https://wordpress.org/latest.tar.gz dest=/tmp/wordpress.tar.gz validate_certs=no
+    - name: Extract WordPress
+      unarchive: src=/tmp/wordpress.tar.gz dest=/var/www/ copy=no
+    - name: Update default Apache site
+      sudo: yes
+      lineinfile:
+        dest=/etc/apache2/sites-enabled/000-default.conf
+        regexp="(.)+DocumentRoot /var/www/html"
+        line="DocumentRoot /var/www/wordpress"
+
+    - name: restart apache
+      service: name=apache2 state=restarted
+
+    - name: Copy sample config file
+      command: mv /var/www/wordpress/wp-config-sample.php /var/www/wordpress/wp-config.php creates=/var/www/wordpress/wp-config.php
+
+    - name: Update WordPress config file
+      lineinfile:
+        dest=/var/www/wordpress/wp-config.php
+        regexp="{{ item.regexp }}"
+        line="{{ item.line }}"
+      with_items:
+        - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{ wp_mysql_db }}');"}
+        - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{ wp_mysql_user }}');"}
+        - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{ wp_mysql_password }}');"}
