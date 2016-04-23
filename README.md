@@ -7,10 +7,10 @@ $ git clone git@github.com:bvenkysubbu/digitalocean.git
 ```
 
 # install ansible
-# http://docs.ansible.com/ansible/intro_installation.html
+http://docs.ansible.com/ansible/intro_installation.html
 
 # install dopy
-# https://pypi.python.org/pypi/dopy
+https://pypi.python.org/pypi/dopy
 ```
 $ pip install dopy
 ```
