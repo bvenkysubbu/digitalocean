@@ -5,7 +5,7 @@
     user:
      name=ubuntu
      generate_ssh_key=yes
-     ssh_key_file=/home/ubuntu/.ssh/id_rsa
+     ssh_key_file='~/.ssh/id_rsa'
 
   - name: pub ssh key present on Digital Ocean
     digital_ocean:
