@@ -2,13 +2,13 @@
 - hosts: localhost
   tasks:
   - name: ssh key presence on local
-    user: >
+    user:
      name=ubuntu
      generate_ssh_key=yes
      ssh_key_file=/home/ubuntu/.ssh/id_rsa
 
   - name: pub ssh key present on Digital Ocean
-    digital_ocean: >
+    digital_ocean:
       state=present
       command=ssh
       name=temp_do
@@ -16,7 +16,7 @@
     register: temp_do
 
   - name: Create wordpress-droplet/ensure wordpress-droplet exists 
-    digital_ocean: >
+    digital_ocean:
       state=present
       command=droplet
       name=wordpress-droplet
