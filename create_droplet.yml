@@ -3,7 +3,7 @@
   tasks:
   - name: ssh key presence on local
     user:
-     name=ubuntu
+     # name=ubuntu
      generate_ssh_key=yes
      ssh_key_file='~/.ssh/id_rsa'
 
@@ -22,8 +22,8 @@
       name=wordpress-droplet
       unique_name=yes
       size_id=512mb
-      region_id=sgp1
-      image_id=ubuntu-14-04-x64
+      region_id=blr1
+      image_id=ubuntu-16-04-x64
       ssh_key_ids={{ temp_do.ssh_key.id }}
     register: wordpress_droplet
   - debug: msg="IP is {{ wordpress_droplet.droplet.ip_address }}"
