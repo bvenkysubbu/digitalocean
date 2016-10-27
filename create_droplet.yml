@@ -3,7 +3,7 @@
   tasks:
   - name: ssh key presence on local
     user:
-     # name=ubuntu
+     name={{ ansible_user_id }}
      generate_ssh_key=yes
      ssh_key_file='~/.ssh/id_rsa'
 
@@ -35,7 +35,6 @@
     when: wordpress_droplet.droplet is defined
 
 
-
 - hosts: wordpress_group
   vars:
     wp_mysql_db: wordpress
@@ -43,6 +42,9 @@
     wp_mysql_password: mysecret
   remote_user: root
   gather_facts: false
+  pre_tasks:
+    - name: 'install python2'
+      raw: sudo apt-get -y install python-simplejson
 
   tasks:
     - name: Wait for port 22 to become available.
@@ -56,17 +58,17 @@
       with_items:
         - apache2
         - mysql-server
-        - php5-mysql
-        - php5
-        - libapache2-mod-php5
-        - php5-mcrypt
+        - php7.0-mysql
+        - php7.0
+        - libapache2-mod-php7.0
+        - php7.0-mcrypt
         - python-mysqldb
 
     - name: Install php extensions
       apt: name={{ item }} state=present
       with_items:
-        - php5-gd
-        - libssh2-php
+        - php7.0-gd
+        - php-ssh2
 
     - name: Create mysql database
       mysql_db: name={{ wp_mysql_db }} state=present
@@ -104,3 +106,11 @@
         - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{ wp_mysql_db }}');"}
         - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{ wp_mysql_user }}');"}
         - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{ wp_mysql_password }}');"}
+
+- hosts: localhost
+  tasks:
+  - name: remove pub ssh key on Digital Ocean
+    digital_ocean:
+      state=absent
+      command=ssh
+      name=temp_do
